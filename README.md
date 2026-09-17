@@ -4,7 +4,7 @@
 
 ## Demo
 
-**Demo Video:** [Watch the Archimedes Lab Interactive Physics Demo](https://drive.google.com/file/d/1vdJoqCJdmtbzC-ZWPbRiBUlJ6woBMIe7/view?usp=sharing)
+**Demo Video:** [Watch the Archimedes Lab Interactive Physics Demo](https://drive.google.com/file/d/1DTpWetU3DmBkJ4k5Wnv0UWxRSgxBYNC4/view?usp=sharing)
 
 ## Screenshots
 
