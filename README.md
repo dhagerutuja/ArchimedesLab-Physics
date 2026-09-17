@@ -4,10 +4,19 @@
 
 ## Demo
 
-**Demo Video:** `Demo/Videos/Archimedes_Lab_Interactive_Physics_DemoCompressed.mp4`
+**Demo Video:** [Watch the Archimedes Lab Interactive Physics Demo](Demo/Videos/Archimedes_Lab_Interactive_Physics_DemoCompressed%20%281%29.mp4)
 
+## Screenshots
 
-**Screenshots:** [`Demo/Images/`](Demo/Images/)
+![Screenshot 1](Demo/Images/image1.png)
+
+![Screenshot 2](Demo/Images/image2.png)
+
+![Screenshot 3](Demo/Images/image3.png)
+
+![Screenshot 4](Demo/Images/image4.png)
+
+![Screenshot 5](Demo/Images/image5.png)
 
 ## Overview
 
@@ -41,18 +50,18 @@ Challenge
 
 ## Key Features
 
-* Guided Physics lesson
-* Interactive 3D buoyancy simulation
-* Multiple materials and fluids
-* Real-time buoyancy calculations
-* Interactive object dragging
-* Physics values and force information
-* Voice narration
-* Dynamic UI and camera presentation
-* Prediction → Experiment → Result learning loop
-* Free Experiment mode
-* Challenge and success/failure system
-* Stable floating/sinking state evaluation
+- Guided Physics lesson
+- Interactive 3D buoyancy simulation
+- Multiple materials and fluids
+- Real-time buoyancy calculations
+- Interactive object dragging
+- Physics values and force information
+- Voice narration
+- Dynamic UI and camera presentation
+- Prediction → Experiment → Result learning loop
+- Free Experiment mode
+- Challenge and success/failure system
+- Stable floating/sinking state evaluation
 
 ## Physics
 
@@ -97,31 +106,31 @@ Lesson Controller
 
 ## Tech Stack
 
-* Unity 6
-* C#
-* Unity Rigidbody Physics
-* Unity UI
-* TextMeshPro
-* ScriptableObjects
-* Unity Audio
-* Git / GitHub
+- Unity 6
+- C#
+- Unity Rigidbody Physics
+- Unity UI
+- TextMeshPro
+- ScriptableObjects
+- Unity Audio
+- Git / GitHub
 
 ## AI-Assisted Development
 
 AI tools were used for architecture exploration, implementation assistance, debugging, iteration, and documentation.
 
-* ChatGPT
-* Codex
-* DeepSeek
+- ChatGPT
+- Codex
+- DeepSeek
 
 AI-generated solutions were reviewed, integrated, modified, and tested within Unity.
 
 ## Documentation
 
-* Case Study
-* Architecture
-* Demo Videos
-* Screenshots
+- [Case Study](Documentation/CaseStudy.md)
+- [Architecture](Documentation/Architecture.md)
+- [Demo Videos](Demo/Videos/)
+- [Screenshots](Demo/Images/)
 
 ## How to Run
 
@@ -132,5 +141,6 @@ AI-generated solutions were reviewed, integrated, modified, and tested within Un
 
 ## Author
 
-Rutuja Dhage
+**Rutuja Dhage**
+
 Generative AI Engineer | Python | RAG | Agentic AI | Backend Systems
