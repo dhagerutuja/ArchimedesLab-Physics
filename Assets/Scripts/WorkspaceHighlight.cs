@@ -1,17 +1,27 @@
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>Reusable, non-interactive highlight for the short workspace orientation.</summary>
 public class WorkspaceHighlight : MonoBehaviour
 {
+    public enum WorldFocus { Tank, TestObject }
+
     private Outline activeOutline;
-    private readonly List<LineRenderer> worldLines = new List<LineRenderer>();
     private float pulseOffset;
-    private RectTransform uiTarget;
-    private Renderer worldTarget;
-    private RectTransform arrowRect;
+    private readonly System.Collections.Generic.List<RendererFocusState> worldFocusStates = new System.Collections.Generic.List<RendererFocusState>();
+
+    private sealed class RendererFocusState
+    {
+        public Renderer Renderer;
+        public MaterialPropertyBlock[] OriginalBlocks;
+    }
+
+    private void Awake()
+    {
+        // Clean up a pointer canvas if this component is reloaded during an in-editor play session.
+        Transform legacyPointer = transform.Find("Workspace Pointer");
+        if (legacyPointer != null) Destroy(legacyPointer.gameObject);
+    }
 
     public void ShowUI(GameObject target)
     {
@@ -21,41 +31,22 @@ public class WorkspaceHighlight : MonoBehaviour
         activeOutline.effectColor = new Color(.18f, .78f, 1f, .95f);
         activeOutline.effectDistance = new Vector2(4f, -4f);
         activeOutline.enabled = true;
-        uiTarget = target.GetComponent<RectTransform>();
         pulseOffset = Time.unscaledTime;
-        ShowArrow();
     }
 
-    public void ShowWorld(Renderer target)
+    public void ShowWorld(Renderer target, WorldFocus focus)
     {
         Clear();
         if (target == null) return;
-        Bounds bounds = target.bounds;
-        worldTarget = target;
-        Vector3 min = bounds.min;
-        Vector3 max = bounds.max;
-        Vector3[] points =
-        {
-            new Vector3(min.x, min.y, min.z), new Vector3(max.x, min.y, min.z), new Vector3(max.x, min.y, max.z), new Vector3(min.x, min.y, max.z),
-            new Vector3(min.x, max.y, min.z), new Vector3(max.x, max.y, min.z), new Vector3(max.x, max.y, max.z), new Vector3(min.x, max.y, max.z)
-        };
-        CreateLine(new[] { points[0], points[1], points[2], points[3], points[0] });
-        CreateLine(new[] { points[4], points[5], points[6], points[7], points[4] });
-        for (int i = 0; i < 4; i++) CreateLine(new[] { points[i], points[i + 4] });
         pulseOffset = Time.unscaledTime;
-        ShowArrow();
+        ApplyWorldFocus(target, focus);
     }
 
     public void Clear()
     {
         if (activeOutline != null) activeOutline.enabled = false;
         activeOutline = null;
-        uiTarget = null;
-        worldTarget = null;
-        if (arrowRect != null) arrowRect.gameObject.SetActive(false);
-        foreach (LineRenderer line in worldLines)
-            if (line != null) Destroy(line.gameObject);
-        worldLines.Clear();
+        RestoreWorldFocus();
     }
 
     private void Update()
@@ -65,100 +56,64 @@ public class WorkspaceHighlight : MonoBehaviour
             float pulse = 3f + Mathf.Sin((Time.unscaledTime - pulseOffset) * 3f) * .8f;
             activeOutline.effectDistance = new Vector2(pulse, -pulse);
         }
-        float width = .025f + Mathf.Sin((Time.unscaledTime - pulseOffset) * 3f) * .006f;
-        foreach (LineRenderer line in worldLines)
-            if (line != null) line.widthMultiplier = width;
-        UpdateArrow();
     }
 
-    private void CreateLine(Vector3[] points)
+    private void ApplyWorldFocus(Renderer root, WorldFocus focus)
     {
-        GameObject lineObject = new GameObject("Workspace Highlight", typeof(LineRenderer));
-        lineObject.transform.SetParent(transform, false);
-        LineRenderer line = lineObject.GetComponent<LineRenderer>();
-        line.useWorldSpace = true;
-        line.positionCount = points.Length;
-        line.SetPositions(points);
-        line.loop = false;
-        line.material = new Material(Shader.Find("Sprites/Default"));
-        line.startColor = line.endColor = new Color(.18f, .78f, 1f, .95f);
-        line.widthMultiplier = .025f;
-        line.numCornerVertices = 4;
-        line.numCapVertices = 4;
-        line.sortingOrder = 50;
-        worldLines.Add(line);
-    }
-
-    private void ShowArrow()
-    {
-        if (arrowRect == null)
+        foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
         {
-            GameObject canvasObject = new GameObject("Workspace Pointer", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasObject.transform.SetParent(transform, false);
-            Canvas canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 150;
-            canvasObject.GetComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            canvasObject.GetComponent<CanvasScaler>().referenceResolution = new Vector2(1920f, 1080f);
-            GameObject arrow = new GameObject("Broad Pointer Arrow", typeof(RectTransform));
-            arrow.transform.SetParent(canvasObject.transform, false);
-            arrowRect = arrow.GetComponent<RectTransform>();
-            arrowRect.sizeDelta = new Vector2(240f, 100f);
-            // A substantial shaft plus a broad triangular head: presentation pointer, not a cursor glyph.
-            Image shaft = CreateArrowPart("Shaft", arrow.transform, new Vector2(154f, 22f), new Vector2(-28f, 0f));
-            shaft.color = new Color(.50f, .91f, 1f, .98f);
-            Outline shaftOutline = shaft.gameObject.AddComponent<Outline>();
-            shaftOutline.effectColor = new Color(.015f, .24f, .38f, .95f);
-            shaftOutline.effectDistance = new Vector2(2f, -2f);
+            if (renderer == null || renderer.sharedMaterials == null) continue;
+            MaterialPropertyBlock[] originals = new MaterialPropertyBlock[renderer.sharedMaterials.Length];
+            for (int materialIndex = 0; materialIndex < originals.Length; materialIndex++)
+            {
+                MaterialPropertyBlock original = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(original, materialIndex);
+                originals[materialIndex] = original;
 
-            GameObject head = new GameObject("Broad Arrowhead", typeof(RectTransform), typeof(TextMeshProUGUI));
-            head.transform.SetParent(arrow.transform, false);
-            RectTransform headRect = head.GetComponent<RectTransform>();
-            headRect.anchorMin = headRect.anchorMax = new Vector2(.5f, .5f);
-            headRect.anchoredPosition = new Vector2(82f, 0f);
-            headRect.sizeDelta = new Vector2(88f, 100f);
-            TextMeshProUGUI headText = head.GetComponent<TextMeshProUGUI>();
-            headText.font = TMP_Settings.defaultFontAsset;
-            headText.text = "▶";
-            headText.fontSize = 102f;
-            headText.alignment = TextAlignmentOptions.Center;
-            headText.color = new Color(.50f, .91f, 1f, .98f);
-            headText.outlineWidth = .15f;
-            headText.outlineColor = new Color(.015f, .24f, .38f, .95f);
-            headText.raycastTarget = false;
+                Material material = renderer.sharedMaterials[materialIndex];
+                if (material == null) continue;
+                Color source = ReadColor(material);
+                Color focusColor = focus == WorldFocus.Tank
+                    ? Color.Lerp(source, new Color(.20f, .92f, 1f, source.a), .72f)
+                    : Color.Lerp(source, new Color(1f, 1f, 1f, source.a), .88f);
+                MaterialPropertyBlock focused = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(focused, materialIndex);
+                SetColor(focused, material, focusColor);
+                SetEmission(focused, material, focus == WorldFocus.Tank
+                    ? new Color(.05f, .42f, .55f, 1f)
+                    : new Color(.55f, .70f, .76f, 1f));
+                renderer.SetPropertyBlock(focused, materialIndex);
+            }
+            worldFocusStates.Add(new RendererFocusState { Renderer = renderer, OriginalBlocks = originals });
         }
-        arrowRect.gameObject.SetActive(true);
-        UpdateArrow();
     }
 
-    private void UpdateArrow()
+    private void RestoreWorldFocus()
     {
-        if (arrowRect == null || !arrowRect.gameObject.activeSelf) return;
-        Vector3 screenPoint;
-        if (uiTarget != null)
-            screenPoint = RectTransformUtility.WorldToScreenPoint(null, uiTarget.position);
-        else if (worldTarget != null && Camera.main != null)
-            screenPoint = Camera.main.WorldToScreenPoint(worldTarget.bounds.center);
-        else
-            return;
-
-        Vector2 offset = new Vector2(-210f, 125f);
-        Vector2 destination = new Vector2(screenPoint.x, screenPoint.y);
-        Vector2 origin = destination + offset;
-        arrowRect.position = origin;
-        Vector2 direction = destination - origin;
-        arrowRect.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+        foreach (RendererFocusState state in worldFocusStates)
+        {
+            if (state.Renderer == null) continue;
+            for (int materialIndex = 0; materialIndex < state.OriginalBlocks.Length; materialIndex++)
+                state.Renderer.SetPropertyBlock(state.OriginalBlocks[materialIndex], materialIndex);
+        }
+        worldFocusStates.Clear();
     }
 
-    private static Image CreateArrowPart(string name, Transform parent, Vector2 size, Vector2 position)
+    private static Color ReadColor(Material material)
     {
-        GameObject part = new GameObject(name, typeof(RectTransform), typeof(Image));
-        part.transform.SetParent(parent, false);
-        RectTransform rect = part.GetComponent<RectTransform>();
-        rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = size;
-        return part.GetComponent<Image>();
+        if (material.HasProperty("_BaseColor")) return material.GetColor("_BaseColor");
+        return material.HasProperty("_Color") ? material.GetColor("_Color") : Color.white;
+    }
+
+    private static void SetColor(MaterialPropertyBlock block, Material material, Color color)
+    {
+        if (material.HasProperty("_BaseColor")) block.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Color")) block.SetColor("_Color", color);
+    }
+
+    private static void SetEmission(MaterialPropertyBlock block, Material material, Color color)
+    {
+        if (material.HasProperty("_EmissionColor")) block.SetColor("_EmissionColor", color);
     }
 
     private void OnDestroy() => Clear();

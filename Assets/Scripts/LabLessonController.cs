@@ -39,6 +39,9 @@ public class LabLessonController : MonoBehaviour
     private Image lessonHeaderImage;
     private TMP_Text dragHintText;
     private Outline lessonPanelOutline;
+    private RectTransform physicsPanelRect;
+    private RectTransform materialPanelRect;
+    private RectTransform introductionArrowRect;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void CreateForMainLab()
@@ -55,6 +58,7 @@ public class LabLessonController : MonoBehaviour
         challenges = FindAnyObjectByType<ChallengeManager>();
         audioManager = FindAnyObjectByType<AudioManager>();
         physicsPanel = GameObject.Find("PhysicsPanel");
+        physicsPanelRect = physicsPanel != null ? physicsPanel.GetComponent<RectTransform>() : null;
         forceVisualizer = FindAnyObjectByType<ForceVisualizer>();
         if (materials != null)
         {
@@ -62,6 +66,15 @@ public class LabLessonController : MonoBehaviour
             sampleCollider = materials.objectCollider;
         }
         materialPanel = GameObject.Find("MaterialPanel");
+        materialPanelRect = materialPanel != null ? materialPanel.GetComponent<RectTransform>() : null;
+        GameObject physicsUI = GameObject.Find("PhysicsUI");
+        introductionArrowRect = physicsUI != null ? physicsUI.transform.Find("ArrowRight") as RectTransform : null;
+        if (introductionArrowRect != null)
+        {
+            Image arrowImage = introductionArrowRect.GetComponent<Image>();
+            if (arrowImage != null) arrowImage.raycastTarget = false;
+            introductionArrowRect.gameObject.SetActive(false);
+        }
         evaluator = gameObject.AddComponent<PhysicsStateEvaluator>();
         cameraDirector = gameObject.AddComponent<LabCameraDirector>();
         freeExperimentPresenter = body != null ? body.GetComponent<FreeExperimentObjectPresenter>() : null;
@@ -175,24 +188,89 @@ public class LabLessonController : MonoBehaviour
         SetOpeningWorkspaceVisible(true);
         HideOverlay();
 
-        yield return ShowWorkspaceCue(AudioManager.NarrationCue.PhysicsPanelIntroduction, () => workspaceHighlight.ShowUI(physicsPanel));
-        yield return ShowWorkspaceCue(AudioManager.NarrationCue.MaterialFluidPanelIntroduction, () => workspaceHighlight.ShowUI(materialPanel));
-        yield return ShowWorkspaceCue(AudioManager.NarrationCue.TankIntroduction, () => workspaceHighlight.ShowWorld(water != null ? water.GetComponent<Renderer>() : null));
-        yield return ShowWorkspaceCue(AudioManager.NarrationCue.TestObjectIntroduction, () => workspaceHighlight.ShowWorld(body != null ? body.GetComponent<Renderer>() : null));
+        yield return ShowWorkspaceCue(AudioManager.NarrationCue.PhysicsPanelIntroduction, () => workspaceHighlight.ShowUI(physicsPanel), physicsPanelRect);
+        yield return ShowWorkspaceCue(AudioManager.NarrationCue.MaterialFluidPanelIntroduction, () => workspaceHighlight.ShowUI(materialPanel), materialPanelRect);
+        Renderer tankRenderer = water != null ? water.GetComponent<Renderer>() : null;
+        Renderer testObjectRenderer = body != null ? body.GetComponent<Renderer>() : null;
+        yield return ShowWorkspaceCue(AudioManager.NarrationCue.TankIntroduction, () => workspaceHighlight.ShowWorld(tankRenderer, WorkspaceHighlight.WorldFocus.Tank), null, tankRenderer);
+        yield return ShowWorkspaceCue(AudioManager.NarrationCue.TestObjectIntroduction, () => workspaceHighlight.ShowWorld(testObjectRenderer, WorkspaceHighlight.WorldFocus.TestObject), null, testObjectRenderer);
 
         workspaceHighlight.Clear();
         SetOpeningWorkspaceVisible(false);
         cameraDirector.FocusExplanation();
     }
 
-    private IEnumerator ShowWorkspaceCue(AudioManager.NarrationCue cue, System.Action showHighlight)
+    private IEnumerator ShowWorkspaceCue(AudioManager.NarrationCue cue, System.Action showHighlight, RectTransform panelArrowTarget = null, Renderer worldArrowTarget = null)
     {
         workspaceHighlight.Clear();
         showHighlight?.Invoke();
+        if (panelArrowTarget != null) ShowIntroductionArrow(panelArrowTarget);
+        else ShowIntroductionArrow(worldArrowTarget);
         bool narrationStarted = audioManager != null && audioManager.PlayNarration(cue);
         while (!skipRequested && narrationStarted && audioManager.IsNarrationPlaying)
+        {
+            if (panelArrowTarget != null) PositionIntroductionArrow(panelArrowTarget);
+            else PositionIntroductionArrow(worldArrowTarget);
             yield return null;
+        }
+        HideIntroductionArrow();
         workspaceHighlight.Clear();
+    }
+
+    private void ShowIntroductionArrow(RectTransform target)
+    {
+        if (introductionArrowRect == null || target == null) return;
+        introductionArrowRect.SetAsLastSibling();
+        introductionArrowRect.localRotation = Quaternion.Euler(0f, 0f, 180f);
+        introductionArrowRect.gameObject.SetActive(true);
+        PositionIntroductionArrow(target);
+    }
+
+    private void PositionIntroductionArrow(RectTransform target)
+    {
+        if (introductionArrowRect == null || target == null || !introductionArrowRect.gameObject.activeSelf) return;
+        Vector3[] corners = new Vector3[4];
+        target.GetWorldCorners(corners);
+        Vector3 panelRightCenter = (corners[2] + corners[3]) * .5f;
+        float arrowHalfWidth = introductionArrowRect.rect.width * introductionArrowRect.lossyScale.x * .5f;
+        float gap = 28f * introductionArrowRect.lossyScale.x;
+        introductionArrowRect.position = panelRightCenter + Vector3.right * (arrowHalfWidth + gap);
+    }
+
+    private void ShowIntroductionArrow(Renderer target)
+    {
+        if (introductionArrowRect == null || target == null) return;
+        introductionArrowRect.SetAsLastSibling();
+        introductionArrowRect.gameObject.SetActive(true);
+        PositionIntroductionArrow(target);
+    }
+
+    private void PositionIntroductionArrow(Renderer target)
+    {
+        if (introductionArrowRect == null || target == null || !introductionArrowRect.gameObject.activeSelf) return;
+        Camera mainCamera = Camera.main;
+        RectTransform canvasRect = introductionArrowRect.parent as RectTransform;
+        if (mainCamera == null || canvasRect == null) return;
+
+        Vector3 screenPoint = mainCamera.WorldToScreenPoint(target.bounds.center);
+        if (screenPoint.z <= 0f) { introductionArrowRect.gameObject.SetActive(false); return; }
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint, null, out Vector2 targetPosition)) return;
+
+        Vector2 canvasCenter = canvasRect.rect.center;
+        Vector2 awayFromCenter = (targetPosition - canvasCenter).normalized;
+        if (awayFromCenter.sqrMagnitude < .001f) awayFromCenter = new Vector2(.7f, .7f).normalized;
+        float gap = 28f;
+        Vector2 arrowPosition = targetPosition + awayFromCenter * (introductionArrowRect.rect.width * .5f + gap);
+        introductionArrowRect.anchoredPosition = arrowPosition;
+
+        Vector2 directionToTarget = targetPosition - introductionArrowRect.anchoredPosition;
+        introductionArrowRect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(directionToTarget.y, directionToTarget.x) * Mathf.Rad2Deg);
+    }
+
+    private void HideIntroductionArrow()
+    {
+        if (introductionArrowRect != null)
+            introductionArrowRect.gameObject.SetActive(false);
     }
 
     private IEnumerator WaitForExpectedState(PhysicalState expectedState, string experimentName, float timeout)
@@ -304,6 +382,7 @@ public class LabLessonController : MonoBehaviour
     private void BeginChallenges()
     {
         State = LabLessonState.Challenges;
+        SetSelectionStatusVisible(true);
         SetPhysicsPanel(true);
         SetForceVisualization(true);
         HideOverlay();
@@ -336,10 +415,16 @@ public class LabLessonController : MonoBehaviour
         SetPhysicsPanel(visible);
         SetForceVisualization(visible);
         if (materialPanel != null) materialPanel.SetActive(visible);
-        GameObject selectionStatus = GameObject.Find("Current Selection Status");
-        if (selectionStatus != null) selectionStatus.SetActive(visible);
+        SetSelectionStatusVisible(visible);
         if (!visible && challenges != null && challenges.challengeStatus != null)
             challenges.challengeStatus.transform.parent.gameObject.SetActive(false);
+    }
+
+    private static void SetSelectionStatusVisible(bool visible)
+    {
+        GameObject selectionStatus = GameObject.Find("Current Selection Status");
+        if (selectionStatus != null && selectionStatus.activeSelf != visible)
+            selectionStatus.SetActive(visible);
     }
 
     private void ConfigureLessonPanel(bool openingInstruction)
@@ -348,8 +433,8 @@ public class LabLessonController : MonoBehaviour
         lessonPanelRect.anchoredPosition = Vector2.zero;
         lessonPanelRect.sizeDelta = openingInstruction ? new Vector2(1360f, 760f) : new Vector2(1120f, 620f);
         // The opening panels intentionally read as dark glass, leaving an atmospheric lab visible behind them.
-        lessonPanelImage.color = openingInstruction ? new Color(.008f, .018f, .032f, .84f) : new Color(.012f, .035f, .062f, .90f);
-        lessonHeaderImage.color = openingInstruction ? new Color(.035f, .14f, .20f, .64f) : new Color(.035f, .14f, .22f, .88f);
+        ApplyLessonPanelStyle(openingInstruction ? .56f : .60f);
+        lessonHeaderImage.color = new Color(0f, 0f, 0f, .58f);
         lessonPanelOutline.enabled = true;
         if (dragHintText != null) dragHintText.gameObject.SetActive(!openingInstruction);
         bodyText.fontSize = openingInstruction ? 40f : 31f;
@@ -365,6 +450,16 @@ public class LabLessonController : MonoBehaviour
     {
         if (physicsPanel != null && physicsPanel.activeSelf != visible)
             physicsPanel.SetActive(visible);
+    }
+
+    private void ApplyLessonPanelStyle(float alpha)
+    {
+        if (lessonPanelImage == null) return;
+        // This is the dynamically-created Image on LessonOverlay/Panel, not a scene or ChallengePanel image.
+        lessonPanelImage.material = null;
+        lessonPanelImage.color = new Color(0f, 0f, 0f, alpha);
+        lessonPanelImage.SetMaterialDirty();
+        lessonPanelImage.SetVerticesDirty();
     }
 
     private void SetForceVisualization(bool visible)
@@ -392,6 +487,7 @@ public class LabLessonController : MonoBehaviour
         if (State == LabLessonState.FreeExperiment || State == LabLessonState.Challenges)
             return;
         skipRequested = true;
+        HideIntroductionArrow();
         workspaceHighlight?.Clear();
         audioManager?.StopNarration();
         StopAllCoroutines();
@@ -422,9 +518,9 @@ public class LabLessonController : MonoBehaviour
         lessonPanelRect.anchoredPosition = Vector2.zero;
         lessonPanelRect.sizeDelta = new Vector2(1120, 620);
         lessonPanelImage = panel.GetComponent<Image>();
-        lessonPanelImage.color = new Color(.012f, .035f, .062f, .90f);
+        ApplyLessonPanelStyle(.60f);
         lessonPanelOutline = panel.AddComponent<Outline>();
-        lessonPanelOutline.effectColor = new Color(.22f, .78f, 1f, .55f);
+        lessonPanelOutline.effectColor = new Color(.72f, .84f, .92f, .34f);
         lessonPanelOutline.effectDistance = new Vector2(2f, -2f);
         lessonPanelOutline.enabled = true;
         overlayGroup = panel.AddComponent<CanvasGroup>();
@@ -433,7 +529,7 @@ public class LabLessonController : MonoBehaviour
         headerRect.anchorMin = new Vector2(0f, 1f); headerRect.anchorMax = new Vector2(1f, 1f);
         headerRect.pivot = new Vector2(.5f, 1f); headerRect.anchoredPosition = Vector2.zero; headerRect.sizeDelta = new Vector2(0f, 96f);
         lessonHeaderImage = header.GetComponent<Image>();
-        lessonHeaderImage.color = new Color(.06f, .22f, .34f, .96f);
+        lessonHeaderImage.color = new Color(0f, 0f, 0f, .58f);
         // Lesson panels have a stable centered composition; they are not draggable workspace windows.
         header.GetComponent<LessonPanelDragHandler>().enabled = false;
         titleText = CreateText("Title", header.transform, 48, FontStyles.Bold);
