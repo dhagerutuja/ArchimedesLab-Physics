@@ -9,8 +9,21 @@ public class ObjectGrabber : MonoBehaviour
     private float grabDistance;
     public bool IsGrabbing => grabbedObject != null;
 
+    private void Awake()
+    {
+        EnsureCamera();
+    }
+
+    public void EnsureCamera()
+    {
+        if (playerCamera == null || !playerCamera.isActiveAndEnabled)
+            playerCamera = Camera.main;
+    }
+
     void Update()
     {
+        EnsureCamera();
+        if (playerCamera == null) return;
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())

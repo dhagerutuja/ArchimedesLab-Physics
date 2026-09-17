@@ -31,16 +31,52 @@ public class FreeExperimentObjectPresenter : MonoBehaviour
     public void BeginFreeExperiment()
     {
         if (body == null || sampleCollider == null || labFloor == null || materials == null) return;
+        gameObject.SetActive(true);
+        sampleCollider.enabled = true;
+        sampleCollider.isTrigger = false;
+        body.detectCollisions = true;
+        if (grabber == null) grabber = FindAnyObjectByType<ObjectGrabber>();
+        if (grabber != null)
+        {
+            grabber.enabled = true;
+            grabber.EnsureCamera();
+        }
         materials.ApplyMaterial(materials.wood);
-        body.isKinematic = false;
+        body.isKinematic = true;
         body.linearVelocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
         body.rotation = Quaternion.identity;
         Physics.SyncTransforms();
-        body.position = GetExternalStagingPosition();
+        body.position = GetStableStagingPosition();
         Physics.SyncTransforms();
-        body.isKinematic = true;
-        previewing = true;
+        body.isKinematic = false;
+        body.useGravity = true;
+        body.WakeUp();
+        previewing = false;
+    }
+
+    private Vector3 GetStableStagingPosition()
+    {
+        Collider fluidCollider = water != null ? water.GetComponent<Collider>() : null;
+        if (fluidCollider == null) return body.position;
+
+        Bounds floorBounds = labFloor.bounds;
+        Bounds fluidBounds = fluidCollider.bounds;
+        Vector3 extents = sampleCollider.bounds.extents;
+        float floorY = floorBounds.max.y + extents.y + .02f;
+        const float sideClearance = 1f;
+
+        // This is deliberately world-space and tank-relative. It is on the open left
+        // side of the tank (toward the normal lab camera), never at the prior lesson's
+        // settled position and never derived from the cinematic camera.
+        Vector3 leftSide = new Vector3(fluidBounds.min.x - extents.x - sideClearance, floorY, fluidBounds.center.z);
+        if (IsExternalFloorPosition(leftSide, extents, floorBounds, fluidCollider)) return leftSide;
+
+        Vector3 rightSide = new Vector3(fluidBounds.max.x + extents.x + sideClearance, floorY, fluidBounds.center.z);
+        if (IsExternalFloorPosition(rightSide, extents, floorBounds, fluidCollider)) return rightSide;
+
+        Debug.LogError("Free Experiment could not find a tank-exterior staging position.", this);
+        return leftSide;
     }
 
     private Vector3 GetExternalStagingPosition()
@@ -88,8 +124,19 @@ public class FreeExperimentObjectPresenter : MonoBehaviour
                 return candidate;
         }
 
-        Debug.LogError("Free Experiment could not find a visible floor staging position outside the tank and water.", this);
-        return body.position;
+        // Never reuse the previous lesson position here: it may be a settled point inside
+        // the tank.  This wider camera-derived fallback keeps the object on the lab floor
+        // and outside the tank even when a decorative collider blocks the strict sight-line test.
+        for (float x = .08f; x <= .94f; x += .02f)
+        for (float y = .08f; y <= .46f; y += .02f)
+        {
+            if (TryFloorPoint(camera, new Vector2(x, y), floorY, out Vector3 candidate) &&
+                IsExternalFloorPosition(candidate, extents, floorBounds, fluidCollider))
+                return candidate;
+        }
+
+        Debug.LogError("Free Experiment could not find a floor staging position outside the tank and water.", this);
+        return new Vector3(floorBounds.center.x, floorY, floorBounds.min.z + extents.z + .1f);
     }
 
     private static bool TryFloorPoint(Camera camera, Vector2 viewport, float floorY, out Vector3 point)
@@ -134,6 +181,19 @@ public class FreeExperimentObjectPresenter : MonoBehaviour
             if (hit.collider == sampleCollider || hit.collider == labFloor) continue;
             if (hit.collider == fluidCollider || IsTankCollider(hit.collider)) return false;
         }
+        return true;
+    }
+
+    private bool IsExternalFloorPosition(Vector3 position, Vector3 extents, Bounds floorBounds, Collider fluidCollider)
+    {
+        if (position.x - extents.x < floorBounds.min.x || position.x + extents.x > floorBounds.max.x ||
+            position.z - extents.z < floorBounds.min.z || position.z + extents.z > floorBounds.max.z)
+            return false;
+
+        Bounds sampleAtPosition = new Bounds(position, extents * 2f);
+        if (fluidCollider != null && IntersectsWithClearance(sampleAtPosition, fluidCollider.bounds, .15f)) return false;
+        foreach (Collider tankCollider in tankColliders)
+            if (tankCollider != null && tankCollider != fluidCollider && IntersectsWithClearance(sampleAtPosition, tankCollider.bounds, .15f)) return false;
         return true;
     }
 

@@ -7353,6 +7353,104 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2069489163}
   m_CullTransparentMesh: 1
+--- !u!1 &900000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 900000002}
+  - component: {fileID: 900000003}
+  - component: {fileID: 900000004}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &900000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &900000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7a649e6c79d4be0a388a9a8290f4df1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  narrationSource: {fileID: 900000004}
+  introduction: {fileID: 8300000, guid: 2f2d8b7d5461bf84aaf81480b7ade970, type: 3}
+  mission: {fileID: 8300000, guid: 35f411d31c1acfa40a692e58e08fef25, type: 3}
+  experiment1Introduction: {fileID: 8300000, guid: 91787eb8c96aefc4bb98111bf1cc6828, type: 3}
+  experiment1Result: {fileID: 8300000, guid: ac6eb9f8001050e42a51b9b46edd5fc2, type: 3}
+  experiment2Introduction: {fileID: 8300000, guid: 1791b45891c46c94ea22fc0726592b94, type: 3}
+  experiment2Result: {fileID: 8300000, guid: 0f35a386aa2047847be7ba4f464894f7, type: 3}
+  principle: {fileID: 8300000, guid: d57fccc624a92c14f9879171757b2eff, type: 3}
+  formula: {fileID: 8300000, guid: 568b99ff919b1234c8824fe969e9fbde, type: 3}
+  prediction: {fileID: 8300000, guid: 0e3473a29cda46f44a9ace52be5ff889, type: 3}
+  predictionResult: {fileID: 8300000, guid: 1219de387f4fd884b8550227a4bb8ca7, type: 3}
+  freeExperimentIntroduction: {fileID: 8300000, guid: adf96bdeb3ad2564e812c4b94bd80802, type: 3}
+  challengeIntroduction: {fileID: 8300000, guid: 0259ea14d689ada4bb611d3acbbc64d1, type: 3}
+  challengeSuccess: {fileID: 8300000, guid: f719f4981115b004c9ee41fab78525d5, type: 3}
+  challengeFailure: {fileID: 8300000, guid: 3dbefe7400e874546a910f91c168f004, type: 3}
+  physicsPanelIntroduction: {fileID: 8300000, guid: 40b7c09068b14c91a7e2521f31c6d992, type: 3}
+  materialFluidPanelIntroduction: {fileID: 8300000, guid: 94ad74a20e8243e6a0654a5701f9e8b2, type: 3}
+  tankIntroduction: {fileID: 8300000, guid: 0d15f6bf2cda4f98a66be3dd23650813, type: 3}
+  testObjectIntroduction: {fileID: 8300000, guid: 535dcf004d624e239777439c45d56d9a, type: 3}
+--- !u!82 &900000004
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000001}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -7363,3 +7461,4 @@ SceneRoots:
   - {fileID: 1137481806}
   - {fileID: 2045677290}
   - {fileID: 630806821}
+  - {fileID: 900000002}

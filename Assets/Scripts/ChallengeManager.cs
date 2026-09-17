@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -5,6 +6,7 @@ using UnityEngine.UI;
 /// <summary>Executes data-defined challenges against the same settled physics state used by lessons.</summary>
 public class ChallengeManager : MonoBehaviour
 {
+    public event Action<bool> ChallengeCompleted;
     private enum ChallengeState { NotStarted, Intro, Evaluating, Success, Failure }
 
     public Rigidbody rb;
@@ -132,11 +134,13 @@ public class ChallengeManager : MonoBehaviour
             ? "The stable result matches your prediction."
             : activeChallenge.educationalExplanation;
         SetStatus($"<size=26><b>CHALLENGE 01</b></size>\n\n<align=center><size=38><b>SUCCESS</b></size>\n\nThe object is floating.\n\n<size=18>{explanation}</size></align>");
+        ChallengeCompleted?.Invoke(true);
     }
 
     private void ShowFailure()
     {
         state = ChallengeState.Failure;
+        ChallengeCompleted?.Invoke(false);
         SetStatus("<b>CHALLENGE 01</b>\n\n<align=center><size=30><b>FAIL — TRY AGAIN</b></size>\n\nThe object is sinking.\n\n<size=18>Choose a less dense material or a denser fluid, then drag it into the water again.</size></align>");
     }
 
